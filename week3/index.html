@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Matrix Factorization Movie Recommender</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Navbar -->
+  <header>
+    <div class="brand">Talha'sMovies</div>
+    <nav class="nav-links">
+      <a href="#">Home</a>
+      <a href="#">Movies</a>
+      <a href="#">Genres</a>
+      <a href="#">My List</a>
+    </nav>
+    <div class="search-box">
+      <input id="search-input" type="text" placeholder="Search movies..." />
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <h2>Matrix Factorization Recommender</h2>
+      <p>Train a collaborative-filtering model right in your browser with TensorFlow.js</p>
+    </div>
+  </section>
+
+  <!-- Main -->
+  <div class="container">
+    <!-- Controls -->
+    <div class="controls">
+      <div class="control-group">
+        <label for="user-select">Select User</label>
+        <select id="user-select">
+          <option value="" disabled selected>-- Select user --</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label for="movie-select">Select Movie</label>
+        <select id="movie-select">
+          <option value="" disabled selected>-- Select a movie --</option>
+        </select>
+      </div>
+
+      <div class="control-group actions">
+        <button id="predict-btn" type="button">Predict Rating</button>
+      </div>
+    </div>
+
+    <!-- Status / Result -->
+    <div id="result-box">
+      <h2>Status</h2>
+      <div id="result">Loading data... (model will train after data loads)</div>
+    </div>
+
+    <!-- Recommendations row (poster-styled, used elsewhere) -->
+    <section class="movie-section">
+      <h2>Sample Movies</h2>
+      <div id="sample-row" class="movie-row"></div>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <p>&copy; 2025 MovieFlix — In-browser Matrix Factorization demo (TensorFlow.js)</p>
+  </footer>
+
+  <!-- TensorFlow.js first, then data.js, then script.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
