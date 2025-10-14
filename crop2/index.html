@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Crop Recommendation — Proof of Concept</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js for EDA charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="dot"></div>
+      <h1>Crop Recommendation</h1>
+    </div>
+    <div class="subtitle">Small but convincing prototype — EDA · Model · UX</div>
+  </header>
+
+  <main class="container">
+    <!-- Pitch / Exam rubric -->
+    <section class="card pitch">
+      <h2>Pitch (Exam Rubric Ready)</h2>
+      <div class="pitch-grid">
+        <div>
+          <h3>Business Value & Uniqueness</h3>
+          <ul>
+            <li><strong>Value:</strong> Reduce crop-selection risk for smallholders by matching soil & weather conditions to historically suitable crops.</li>
+            <li><strong>Uniqueness:</strong> Segments by <em>resource constraints</em> (e.g., water-scarce vs. normal) and adapts the recommendation strategy accordingly. Not just “train a model”; it’s a strategy-aware RecSys.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Data & Approach</h3>
+          <ul>
+            <li>Dataset: N, P, K, temperature, humidity, pH, rainfall → 22 crops (2,200 rows).</li>
+            <li>Approach: k-NN (k=7) with z-score normalization; distance weighting adapts by farmer segment (e.g., emphasize rainfall under “Water-scarce”).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Model Justification</h3>
+          <ul>
+            <li><strong>Class method:</strong> simple, interpretable baseline from class; strong PoC fit.</li>
+            <li>Fast to train (none), explainable via nearest neighbors.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Concept of Proof</h3>
+          <ul>
+            <li>Interactive demo with inputs → top-k crops + neighbor evidence.</li>
+            <li>Built-in holdout accuracy for credibility (client-side CV).</li>
+          </ul>
+        </div>
+        <div>
+          <h3>UI/UX</h3>
+          <ul>
+            <li>One-screen flow: inputs → recommendations & EDA graphs.</li>
+            <li>Segment toggle to show “strategy” not just a model.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Scope Control</h3>
+          <ul>
+            <li>No LLMs, no time-series. Clean, feasible, 4-minute story.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Controls -->
+    <section class="card">
+      <h2>Input Conditions</h2>
+      <div class="controls">
+        <div class="control">
+          <label for="N">Nitrogen (N)</label>
+          <input id="N" type="number" step="1" />
+        </div>
+        <div class="control">
+          <label for="P">Phosphorus (P)</label>
+          <input id="P" type="number" step="1" />
+        </div>
+        <div class="control">
+          <label for="K">Potassium (K)</label>
+          <input id="K" type="number" step="1" />
+        </div>
+        <div class="control">
+          <label for="temperature">Temperature (°C)</label>
+          <input id="temperature" type="number" step="0.1" />
+        </div>
+        <div class="control">
+          <label for="humidity">Humidity (%)</label>
+          <input id="humidity" type="number" step="0.1" />
+        </div>
+        <div class="control">
+          <label for="ph">pH</label>
+          <input id="ph" type="number" step="0.01" />
+        </div>
+        <div class="control">
+          <label for="rainfall">Rainfall (mm)</label>
+          <input id="rainfall" type="number" step="0.1" />
+        </div>
+      </div>
+
+      <div class="segmentation">
+        <h3>Recommendation Strategy (Farmer Segment)</h3>
+        <label class="chip">
+          <input type="radio" name="segment" value="default" checked />
+          <span>Default</span>
+        </label>
+        <label class="chip">
+          <input type="radio" name="segment" value="water_scarce" />
+          <span>Water-scarce (penalize rainfall mismatch)</span>
+        </label>
+        <label class="chip">
+          <input type="radio" name="segment" value="ph_sensitive" />
+          <span>pH-sensitive (penalize pH mismatch)</span>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="btn-recommend">Recommend Crops</button>
+        <button id="btn-cv" class="ghost">Run Quick CV</button>
+        <span id="model-tag" class="tag">Model: k-NN (k=7) · z-score normalized</span>
+      </div>
+    </section>
+
+    <!-- Recommendations -->
+    <section class="card">
+      <h2>Top Recommendations</h2>
+      <div id="recs" class="recs"></div>
+      <div id="neighbors" class="neighbors"></div>
+    </section>
+
+    <!-- EDA -->
+    <section class="card">
+      <h2>EDA — Understand the Data</h2>
+      <div class="eda-grid">
+        <div class="eda-item">
+          <canvas id="chart-labels"></canvas>
+        </div>
+        <div class="eda-item">
+          <canvas id="chart-temp"></canvas>
+        </div>
+        <div class="eda-item">
+          <canvas id="chart-rain"></canvas>
+        </div>
+        <div class="eda-item">
+          <canvas id="chart-ph"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes for presentation -->
+    <section class="card tiny">
+      <details>
+        <summary>Presenter Notes (1-slide summary)</summary>
+        <ol>
+          <li><strong>Problem:</strong> Choosing the wrong crop for local conditions causes loss. We map conditions → crops to reduce risk.</li>
+          <li><strong>Data:</strong> 2,200 rows; features N,P,K,Temp,Humidity,pH,Rainfall → 22 crops.</li>
+          <li><strong>EDA insights:</strong> crops cluster by rainfall/pH; some require more rainfall; pH around ~6.4 median.</li>
+          <li><strong>Model:</strong> k-NN (k=7), z-score normalized; strategy-aware distance weighting (segment toggles).</li>
+          <li><strong>Demo:</strong> Enter values → top crops + neighbor evidence; quick CV accuracy shown.</li>
+          <li><strong>Impact:</strong> Baseline RecSys that can later plug into real farm data/price APIs.</li>
+        </ol>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>© 2025 Crop RecSys PoC</span>
+  </footer>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
