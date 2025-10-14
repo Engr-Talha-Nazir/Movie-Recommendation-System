@@ -1,4 +1,3 @@
-
 // ===== Settings =====
 const MODEL_NAME = "MLP(128-64-32, ReLU, Dropout 0.2) · Adam lr=0.001 · CE";
 const EPOCHS = 80;
@@ -7,7 +6,7 @@ const BATCH_SIZE = 32;
 // ===== State & Utilities =====
 const dom = id => document.getElementById(id);
 const logEl = dom('log');
-let DATA = null; // {X: tf.Tensor2D(float32), yOne: tf.Tensor2D(float32), yIdx: Int32Array, labels: string[], mean: number[], std: number[]}
+let DATA = null; // {X: tf.Tensor2D, yOne: tf.Tensor2D, yIdx: tf.Tensor1D, labels: string[], mean: number[], std: number[]}
 let MODEL = null;
 let TRAINED = false;
 
@@ -22,6 +21,17 @@ function log(msg){
   logEl.scrollTop = logEl.scrollHeight;
 }
 
+// ===== CSV decode + parse =====
+function decodeEmbeddedCSV(){
+  try{
+    const csv = atob(window.CROP_CSV_BASE64 || "");
+    if(!csv || csv.trim().length === 0) throw new Error("Embedded CSV empty.");
+    return csv;
+  }catch(err){
+    throw new Error("Failed to decode embedded CSV (base64): "+err.message);
+  }
+}
+
 // ===== CSV → Tensors (float32 only) =====
 function parseCSV(text){
   const lines = text.trim().split(/\r?\n/);
@@ -32,6 +42,9 @@ function parseCSV(text){
     ph: header.indexOf('ph'), rainfall: header.indexOf('rainfall'),
     label: header.findIndex(h => /^(label|crop)$/i.test(h))
   };
+  if (Object.values(idx).some(v => v < 0)) {
+    throw new Error("CSV headers must include N,P,K,temperature,humidity,ph,rainfall,label(crop)");
+  }
   const rows = [], labels = [];
   for(const line of lines){
     if(!line.trim()) continue;
@@ -42,16 +55,17 @@ function parseCSV(text){
     rows.push(x); labels.push(y);
   }
   const uniq = Array.from(new Set(labels)).sort();
-  const yIdx = labels.map(y=>uniq.indexOf(y));
+  const yIdxArr = labels.map(y=>uniq.indexOf(y));
   const X = tf.tensor2d(rows, undefined, 'float32');
   const {mean, variance} = tf.moments(X, 0);
   const std = variance.sqrt();
   const Xstd = X.sub(mean).div(std);
   const n = rows.length, c = uniq.length;
   const yOneData = new Float32Array(n * c);
-  for(let i=0;i<n;i++){ yOneData[i*c + yIdx[i]] = 1; }
+  for(let i=0;i<n;i++){ yOneData[i*c + yIdxArr[i]] = 1; }
   const yOne = tf.tensor2d(yOneData, [n,c], 'float32');
-  const data = { X: Xstd, yOne, yIdx: Int32Array.from(yIdx), labels: uniq, mean: Array.from(mean.dataSync()), std: Array.from(std.dataSync()) };
+  const yIdx = tf.tensor1d(Int32Array.from(yIdxArr), 'int32');
+  const data = { X: Xstd, yOne, yIdx, labels: uniq, mean: Array.from(mean.dataSync()), std: Array.from(std.dataSync()) };
   X.dispose(); mean.dispose(); variance.dispose(); std.dispose();
   return data;
 }
@@ -74,7 +88,7 @@ function buildModel(inputDim, numClasses){
 }
 
 // ===== Manual evaluation =====
-async function manualValEval(model, Xva, yvaOne, yvaIdx){
+async function manualValEval(model, Xva, yvaIdx){
   const logits = model.predict(Xva);
   const probs = await logits.array(); // [N][C]
   logits.dispose?.();
@@ -128,8 +142,9 @@ async function train(){
     const Xtr = subset(DATA.X, tr);
     const ytr = subset(DATA.yOne, tr);
     const Xva = subset(DATA.X, va);
-    const yvaOne = subset(DATA.yOne, va);
-    const yvaIdx = tf.tensor1d(Array.from(DATA.yIdx).filter((_,i)=>va.includes(i)), 'int32');
+    const idxVa = tf.tensor1d(va, 'int32');
+    const yvaIdx = tf.gather(DATA.yIdx, idxVa); // exact gather
+    idxVa.dispose();
 
     MODEL = buildModel(DATA.X.shape[1], DATA.labels.length);
     dom('modelState').textContent = 'model: training...';
@@ -144,7 +159,7 @@ async function train(){
           const epoch = e+1;
           const loss = (logs.loss??0);
           updateLoss(epoch, loss);
-          lastEva = await manualValEval(MODEL, Xva, yvaOne, yvaIdx);
+          lastEva = await manualValEval(MODEL, Xva, yvaIdx);
           updateValAcc(epoch, lastEva.acc);
           dom('k_epochs').textContent = String(epoch);
           dom('k_acc').textContent = (lastEva.acc*100).toFixed(1) + '%';
@@ -154,14 +169,14 @@ async function train(){
     });
 
     // Diagnostics
-    const eva = await manualValEval(MODEL, Xva, yvaOne, yvaIdx);
+    const eva = await manualValEval(MODEL, Xva, yvaIdx);
     const roc = computeRocMicro(eva.yTrue, eva.probsFlat, DATA.labels.length);
     ensureRocChart(); renderRoc(roc.fpr, roc.tpr, roc.auc);
     const cm = confusionMatrix(eva.yTrue, eva.preds, DATA.labels.length);
     renderCm(cm, DATA.labels);
 
     // Cleanup
-    Xtr.dispose(); ytr.dispose(); Xva.dispose(); yvaOne.dispose(); yvaIdx.dispose();
+    Xtr.dispose(); ytr.dispose(); Xva.dispose(); yvaIdx.dispose();
     TRAINED = true;
     dom('modelState').textContent = 'model: trained';
     dom('predictBtn').disabled = false;
@@ -186,35 +201,35 @@ async function predict(){
 }
 
 function resetAll(){
-  if(DATA){ DATA.X.dispose?.(); DATA.yOne.dispose?.(); }
+  if(DATA){ DATA.X.dispose?.(); DATA.yOne.dispose?.(); DATA.yIdx.dispose?.(); }
   if(MODEL){ MODEL.dispose(); }
-  DATA = parseCSV(window.CROP_CSV);
-  dom('k_rows').textContent = String(DATA.X.shape[0]);
-  dom('k_classes').textContent = String(DATA.labels.length);
+  DATA = null;
+  dom('k_rows').textContent = '–';
+  dom('k_classes').textContent = '–';
   dom('k_acc').textContent = '–';
   dom('k_epochs').textContent = '–';
   dom('topk').innerHTML = '';
-  dom('modelState').textContent = 'model: data loaded';
+  dom('modelState').textContent = 'model: not trained';
   if(rocChart){ rocChart.destroy(); rocChart=null; }
   if(cmChart){ cmChart.destroy(); cmChart=null; }
   if(lossChart){ lossChart.destroy(); lossChart=null; }
   if(valAccChart){ valAccChart.destroy(); valAccChart=null; }
   lossHistory.length=0; valAccHistory.length=0;
-  log('🔁 State reset.');
+  log('🔁 State reset. Click Train model again.');
 }
 
 // ===== Init =====
 (function init(){
   dom('model_name').textContent = `Model: ${MODEL_NAME}`;
   try{
-    if(!window.CROP_CSV){ log('❌ data.js did not load.'); return; }
-    DATA = parseCSV(window.CROP_CSV);
+    const csv = decodeEmbeddedCSV();
+    DATA = parseCSV(csv);
     dom('k_rows').textContent = String(DATA.X.shape[0]);
     dom('k_classes').textContent = String(DATA.labels.length);
     dom('modelState').textContent = 'model: data loaded';
     log(`📦 Loaded ${DATA.X.shape[0]} rows · ${DATA.labels.length} classes`);
   }catch(err){
-    log('❌ Failed to parse embedded CSV: ' + err.message);
+    log('❌ Failed to load embedded CSV: ' + err.message);
   }
   dom('trainBtn').addEventListener('click', train);
   dom('predictBtn').addEventListener('click', predict);
