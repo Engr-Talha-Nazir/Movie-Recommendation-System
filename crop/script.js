@@ -83,7 +83,7 @@ function buildModel(inputDim, numClasses){
   m.add(tf.layers.dropout({rate:0.15}));
   m.add(tf.layers.dense({units:48, activation:'relu'}));
   m.add(tf.layers.dense({units:numClasses, activation:'softmax'}));
-  m.compile({optimizer: tf.train.adam(0.005), loss:'sparseCategoricalCrossentropy', metrics:['accuracy']});
+  m.compile({optimizer: tf.train.adam(0.005), loss:'sparseCategoricalCrossentropy', metrics:[tf.metrics.sparseCategoricalAccuracy]});
   return m;
 }
 
@@ -224,11 +224,13 @@ async function train(){
     await MODEL.fit(Xtr, ytr, {
       epochs: 20, batchSize: 32, validationData: [Xva, yva], shuffle: true,
       callbacks: { onEpochEnd: (e, logs)=>{
-        const va = logs.val_accuracy ?? logs.val_acc ?? 0;
+        const accKey = ['acc','accuracy','sparseCategoricalAccuracy'].find(k=>k in logs) || 'accuracy';
+        const valAccKey = ['val_acc','val_accuracy','val_sparseCategoricalAccuracy'].find(k=>k in logs) || 'val_accuracy';
+        const va = logs[valAccKey] ?? 0;
         best = Math.max(best, va);
         dom('k_epochs').textContent = String(e+1);
         dom('k_acc').textContent = (best*100).toFixed(1) + '%';
-        log(`epoch ${e+1}: loss=${(logs.loss??0).toFixed(3)} · acc=${(logs.acc||logs.accuracy||0).toFixed(3)} · val_acc=${(va).toFixed(3)}`)
+        log(`epoch ${e+1}: loss=${(logs.loss??0).toFixed(3)} · acc=${(logs[accKey]||0).toFixed(3)} · val_acc=${(va).toFixed(3)}`)
       }}
     });
     // Validation predictions for diagnostics
