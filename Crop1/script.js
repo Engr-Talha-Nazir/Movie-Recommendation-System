@@ -205,7 +205,7 @@ async function train(){
 
     let lastEva = null;
     await MODEL.fit(Xtr, ytr, {
-      epochs: 30, batchSize: 32, shuffle: true,
+      epochs: 70, batchSize: 32, shuffle: true,
       callbacks: {
         onEpochEnd: async (e, logs) => {
           lastEva = await manualValEval(MODEL, Xva, yvaOne, yvaIdx);
