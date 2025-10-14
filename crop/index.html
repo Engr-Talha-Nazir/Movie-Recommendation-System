@@ -6,6 +6,7 @@
   <title>Crop Recommendation — Live Demo (TF.js)</title>
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script defer src="data.js"></script>
   <script defer src="script.js"></script>
 </head>
@@ -19,7 +20,7 @@
   <div class="grid">
     <!-- LEFT: Training & EDA-lite -->
     <section class="card">
-      <h3>1) Load data & train (TF.js)</h3>
+      <h3>1) Train (client-side)</h3>
       <div class="row" style="justify-content:space-between;gap:12px">
         <div class="row" style="gap:8px">
           <button id="trainBtn" class="btn primary">Train model</button>
@@ -33,7 +34,7 @@
         <div class="item"><div class="muted">Val Acc</div><div id="k_acc" class="val">–</div></div>
         <div class="item"><div class="muted">Epochs</div><div id="k_epochs" class="val">–</div></div>
       </div>
-      <p class="note">EDA‑lite: features = N, P, K, temperature, humidity, ph, rainfall · label = crop</p>
+      <p class="note">Features: N, P, K, temperature, humidity, ph, rainfall · Label: crop</p>
       <div class="log" id="log"></div>
     </section>
 
@@ -51,24 +52,38 @@
       </div>
       <div class="row" style="margin-top:10px;gap:8px">
         <button id="predictBtn" class="btn primary" disabled>Recommend crops</button>
-        <span class="pill" id="modelState">model: not trained</span>
+        <span class="pill" id="modelState">model: data loaded</span>
       </div>
       <div class="divider"></div>
-      <h4 style="margin-top:0">Top‑3 recommendations</h4>
+      <h4 style="margin-top:0">Top-3 recommendations</h4>
       <ol id="topk" class="topk"></ol>
-      <div class="footer">Everything runs locally in your browser using TensorFlow.js. Click <strong>Train model</strong>, then input your soil & climate values to get crop suggestions.</div>
+      <div class="footer">Runs locally in your browser using TensorFlow.js. Train the model, then input your soil & climate values to get crop suggestions.</div>
     </section>
   </div>
 
   <section class="card" style="margin-top:16px">
+    <h3>3) Validation diagnostics</h3>
+    <div class="chart-card">
+      <div>
+        <canvas id="rocChart" height="260"></canvas>
+        <div class="muted" id="aucNote" style="margin-top:6px">ROC (micro-average) will appear after training.</div>
+      </div>
+      <div>
+        <canvas id="cmChart" height="260"></canvas>
+        <div class="muted" style="margin-top:6px">Confusion snapshot (top-1) on validation set.</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
     <h3>Why this fits the exam brief</h3>
     <ul>
-      <li><strong>Business value & uniqueness:</strong> Helps choose viable crops given soil & weather, reducing failed plantings and input waste.</li>
-      <li><strong>EDA & features:</strong> Uses N‑P‑K + climate (temp, humidity, rainfall) + pH features. Basic stats computed for normalization.</li>
-      <li><strong>Modeling:</strong> Lightweight softmax classifier (2×Dense ReLU → Softmax), top‑K with confidence.</li>
-      <li><strong>Concept‑of‑proof:</strong> No backend; one static site; immediate inference UI.</li>
-      <li><strong>UI/UX:</strong> Clear inputs, one‑click train, probability‑sorted recommendations.</li>
-      <li><strong>Scope control:</strong> No LLMs/time series—just classic RecSys classification with clean feature engineering.</li>
+      <li><strong>Business value:</strong> Choose viable crops given soil & weather → less waste, better yield.</li>
+      <li><strong>EDA & features:</strong> Classic agronomy features; standardized before training.</li>
+      <li><strong>Modeling:</strong> Lightweight classifier (ReLU layers → Softmax). Live ROC & confusion.</li>
+      <li><strong>Concept-of-proof:</strong> Static site, no backend, instant demo.</li>
+      <li><strong>UI/UX:</strong> Clean inputs, clear KPIs, charts for trust.</li>
+      <li><strong>Scope control:</strong> No LLMs/time series; simple RecSys framing.</li>
     </ul>
   </section>
 </div>
