@@ -1,1 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crop Recommendation — Live Demo (TF.js)</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="logo"></div>
+      <div class="title">Crop Recommendation — Concept‑of‑Proof (TF.js)</div>
+      <span class="model-pill" id="model_name">Model: —</span>
+    </div>
+    <div class="badge">GitHub Pages • Client-only</div>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h3>1) Train (client-side)</h3>
+      <div class="row" style="justify-content:space-between;gap:12px">
+        <div class="row" style="gap:8px">
+          <button id="trainBtn" class="btn primary">Train model</button>
+          <button id="resetBtn" class="btn">Reset</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="kpi">
+        <div class="item"><div class="small">Rows</div><div id="k_rows" class="val">–</div></div>
+        <div class="item"><div class="small">Classes</div><div id="k_classes" class="val">–</div></div>
+        <div class="item"><div class="small">Val Acc</div><div id="k_acc" class="val">–</div></div>
+        <div class="item"><div class="small">Epochs</div><div id="k_epochs" class="val">–</div></div>
+      </div>
+      <p class="note">Features: N, P, K, temperature, humidity, ph, rainfall · Label: crop</p>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section class="card">
+      <h3>2) Try the recommender</h3>
+      <div class="cols7">
+        <div><label>N</label><input id="f_N" type="number" step="1" value="90"></div>
+        <div><label>P</label><input id="f_P" type="number" step="1" value="42"></div>
+        <div><label>K</label><input id="f_K" type="number" step="1" value="43"></div>
+        <div><label>Temp (°C)</label><input id="f_temp" type="number" step="0.1" value="20"></div>
+        <div><label>Humidity (%)</label><input id="f_hum" type="number" step="0.1" value="80"></div>
+        <div><label>pH</label><input id="f_ph" type="number" step="0.1" value="6.5"></div>
+        <div><label>Rainfall (mm)</label><input id="f_rain" type="number" step="0.1" value="200"></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button id="predictBtn" class="btn primary" disabled>Recommend crops</button>
+        <span class="pill" id="modelState">model: not trained</span>
+      </div>
+      <div class="divider"></div>
+      <h4 style="margin-top:0">Top‑3 recommendations</h4>
+      <ol id="topk" class="topk"></ol>
+      <div class="footer">Runs locally with TensorFlow.js. Train, then input soil & climate values to get crop suggestions.</div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h3>3) Validation diagnostics</h3>
+    <div class="chart-grid">
+      <div>
+        <canvas id="rocChart" height="260"></canvas>
+        <div class="small" id="aucNote" style="margin-top:6px">ROC (micro-average) · AUC = —</div>
+      </div>
+      <div>
+        <canvas id="cmChart" height="260"></canvas>
+        <div class="small" style="margin-top:6px">Confusion snapshot (top‑1) on validation set.</div>
+      </div>
+    </div>
+    <div class="chart-grid" style="margin-top:14px">
+      <div>
+        <canvas id="lossChart" height="240"></canvas>
+        <div class="small" style="margin-top:6px">Training loss vs epoch.</div>
+      </div>
+      <div>
+        <canvas id="valAccChart" height="240"></canvas>
+        <div class="small" style="margin-top:6px">Validation accuracy vs epoch.</div>
+      </div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
 
