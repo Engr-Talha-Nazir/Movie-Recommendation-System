@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Crop Recommendation — Live Demo (TF.js)</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
+  <script defer src="data.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">🌾 Crop Recommendation — Concept-of-Proof (TF.js)</div>
+    <div class="badge">GitHub Pages • Client-only</div>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: Training & EDA-lite -->
+    <section class="card">
+      <h3>1) Load data & train (TF.js)</h3>
+      <div class="row" style="justify-content:space-between;gap:12px">
+        <div class="row" style="gap:8px">
+          <button id="trainBtn" class="btn primary">Train model</button>
+          <button id="resetBtn" class="btn ghost">Reset</button>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="kpi">
+        <div class="item"><div class="muted">Rows</div><div id="k_rows" class="val">–</div></div>
+        <div class="item"><div class="muted">Classes</div><div id="k_classes" class="val">–</div></div>
+        <div class="item"><div class="muted">Val Acc</div><div id="k_acc" class="val">–</div></div>
+        <div class="item"><div class="muted">Epochs</div><div id="k_epochs" class="val">–</div></div>
+      </div>
+      <p class="note">EDA‑lite: features = N, P, K, temperature, humidity, ph, rainfall · label = crop</p>
+      <div class="log" id="log"></div>
+    </section>
+
+    <!-- RIGHT: Inference UI -->
+    <section class="card">
+      <h3>2) Try the recommender</h3>
+      <div class="cols7">
+        <div><label>N</label><input id="f_N" type="number" step="1" value="90"></div>
+        <div><label>P</label><input id="f_P" type="number" step="1" value="42"></div>
+        <div><label>K</label><input id="f_K" type="number" step="1" value="43"></div>
+        <div><label>Temp (°C)</label><input id="f_temp" type="number" step="0.1" value="20"></div>
+        <div><label>Humidity (%)</label><input id="f_hum" type="number" step="0.1" value="80"></div>
+        <div><label>pH</label><input id="f_ph" type="number" step="0.1" value="6.5"></div>
+        <div><label>Rainfall (mm)</label><input id="f_rain" type="number" step="0.1" value="200"></div>
+      </div>
+      <div class="row" style="margin-top:10px;gap:8px">
+        <button id="predictBtn" class="btn primary" disabled>Recommend crops</button>
+        <span class="pill" id="modelState">model: not trained</span>
+      </div>
+      <div class="divider"></div>
+      <h4 style="margin-top:0">Top‑3 recommendations</h4>
+      <ol id="topk" class="topk"></ol>
+      <div class="footer">Everything runs locally in your browser using TensorFlow.js. Click <strong>Train model</strong>, then input your soil & climate values to get crop suggestions.</div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px">
+    <h3>Why this fits the exam brief</h3>
+    <ul>
+      <li><strong>Business value & uniqueness:</strong> Helps choose viable crops given soil & weather, reducing failed plantings and input waste.</li>
+      <li><strong>EDA & features:</strong> Uses N‑P‑K + climate (temp, humidity, rainfall) + pH features. Basic stats computed for normalization.</li>
+      <li><strong>Modeling:</strong> Lightweight softmax classifier (2×Dense ReLU → Softmax), top‑K with confidence.</li>
+      <li><strong>Concept‑of‑proof:</strong> No backend; one static site; immediate inference UI.</li>
+      <li><strong>UI/UX:</strong> Clear inputs, one‑click train, probability‑sorted recommendations.</li>
+      <li><strong>Scope control:</strong> No LLMs/time series—just classic RecSys classification with clean feature engineering.</li>
+    </ul>
+  </section>
+</div>
+</body>
+</html>
