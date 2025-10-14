@@ -83,7 +83,7 @@ function buildModel(inputDim, numClasses){
   m.add(tf.layers.dropout({rate:0.15}));
   m.add(tf.layers.dense({units:48, activation:'relu'}));
   m.add(tf.layers.dense({units:numClasses, activation:'softmax'}));
-  m.compile({optimizer: tf.train.adam(0.005), loss:'sparseCategoricalCrossentropy', metrics:[tf.metrics.sparseCategoricalAccuracy]});
+  m.compile({optimizer: tf.train.adam(0.005), loss:'sparseCategoricalCrossentropy'});
   return m;
 }
 
@@ -223,7 +223,13 @@ async function train(){
     let best = 0;
     await MODEL.fit(Xtr, ytr, {
       epochs: 20, batchSize: 32, validationData: [Xva, yva], shuffle: true,
-      callbacks: { onEpochEnd: (e, logs)=>{
+      callbacks: { onEpochEnd: async (e, logs)=>{
+        // Compute validation accuracy manually to avoid dtype issues
+        const eva = await manualValAccuracy(MODEL, Xva, yva);
+        const va = eva.acc || 0;
+        dom('k_epochs').textContent = String(e+1);
+        dom('k_acc').textContent = (va*100).toFixed(1) + '%';
+        log(`epoch ${e+1}: loss=${(logs.loss??0).toFixed(3)} · val_acc=${(va).toFixed(3)}`)
         const accKey = ['acc','accuracy','sparseCategoricalAccuracy'].find(k=>k in logs) || 'accuracy';
         const valAccKey = ['val_acc','val_accuracy','val_sparseCategoricalAccuracy'].find(k=>k in logs) || 'val_accuracy';
         const va = logs[valAccKey] ?? 0;
@@ -233,7 +239,13 @@ async function train(){
         log(`epoch ${e+1}: loss=${(logs.loss??0).toFixed(3)} · acc=${(logs[accKey]||0).toFixed(3)} · val_acc=${(va).toFixed(3)}`)
       }}
     });
-    // Validation predictions for diagnostics
+
+    // Validation predictions for diagnostics (reuse manual eval)
+    const eva = await manualValAccuracy(MODEL, Xva, yva);
+    const yva_true = eva.yTrue;
+    const yva_prob = eva.probsFlat; // flattened [N*C]
+    const yva_pred = eva.preds;
+
     const yva_true = Array.from(await yva.data());
     const logits = MODEL.predict(Xva);
     const yva_prob = await logits.data(); // flattened [N, C]
@@ -316,3 +328,26 @@ function resetAll(){
   dom('predictBtn').addEventListener('click', predict);
   dom('resetBtn').addEventListener('click', resetAll);
 })();
+
+
+async function manualValAccuracy(model, Xva, yva){
+  // Returns {acc, preds, probsFlat}
+  const logits = model.predict(Xva);
+  const probs = await logits.array(); // [N][C]
+  logits.dispose?.();
+  const yTrue = Array.from(await yva.data()); // int32
+  const yPred = [];
+  let correct = 0;
+  for(let i=0;i<probs.length;i++){
+    const row = probs[i];
+    let bi=0, bp=-1;
+    for(let c=0;c<row.length;c++){ if(row[c]>bp){ bp=row[c]; bi=c; } }
+    yPred.push(bi);
+    if(bi === yTrue[i]) correct++;
+  }
+  // Flatten probs for ROC
+  const probsFlat = new Float32Array(probs.length * probs[0].length);
+  let k=0; for(const row of probs){ for(const p of row){ probsFlat[k++]=p; } }
+  return {acc: correct / yTrue.length, preds: yPred, probsFlat, yTrue};
+}
+
